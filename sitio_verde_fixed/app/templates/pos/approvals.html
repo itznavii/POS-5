@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Discount Approvals{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Pending Discount Approvals</h4>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm">
+  <thead><tr><th>Sale #</th><th>Customer</th><th>Discount</th><th>Total</th><th>Cashier</th><th></th></tr></thead>
+  <tbody>
+  {% for s in pending %}
+    <tr>
+      <td>{{ s.sale_number }}</td><td>{{ s.customer_name }}</td><td>₱{{ '%.2f'|format(s.discount) }}</td><td>₱{{ '%.2f'|format(s.total) }}</td><td>{{ s.cashier.username if s.cashier else '' }}</td>
+      <td><form method="POST" action="{{ url_for('pos.approve_sale', sale_id=s.id) }}"><button class="btn btn-sm btn-sv">Approve</button></form></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="text-muted">No pending approvals.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endblock %}

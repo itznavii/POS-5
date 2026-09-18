@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Sales History{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Sales History</h4>
+<form method="GET" class="mb-3">
+  <input type="text" name="q" class="form-control form-control-sm" style="max-width:300px" placeholder="Search sale # or customer…" value="{{ q }}">
+</form>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+  <thead><tr><th>Sale #</th><th>Date</th><th>Customer</th><th>Total</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for s in sales %}
+    <tr>
+      <td>{{ s.sale_number }}</td><td>{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ s.customer_name }}</td><td>₱{{ '%.2f'|format(s.total) }}</td>
+      <td><span class="badge bg-{{ 'success' if s.status=='completed' else ('danger' if s.status=='voided' else 'warning') }}">{{ s.status }}</span></td>
+      <td>
+        <a href="{{ url_for('pos.sale_detail', sale_id=s.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+        <a href="{{ url_for('pos.receipt', sale_id=s.id) }}" class="btn btn-sm btn-outline-success">Receipt</a>
+        {% if current_user.is_admin() and s.status == 'completed' %}
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#voidModal{{ s.id }}">Void</button>
+        {% endif %}
+      </td>
+    </tr>
+    <div class="modal fade" id="voidModal{{ s.id }}"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h6>Void {{ s.sale_number }}</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="POST" action="{{ url_for('pos.void_sale', sale_id=s.id) }}">
+        <div class="modal-body"><input type="text" name="reason" class="form-control" placeholder="Reason for void" required></div>
+        <div class="modal-footer"><button class="btn btn-danger btn-sm">Confirm Void</button></div>
+      </form>
+    </div></div></div>
+  {% else %}
+    <tr><td colspan="6" class="text-muted text-center py-3">No sales found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% with endpoint='pos.history', extra_args={'q': q} %}{% include "_pagination.html" %}{% endwith %}
+</div>
+{% endblock %}

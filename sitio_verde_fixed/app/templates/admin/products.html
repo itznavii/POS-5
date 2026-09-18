@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Menu Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold">Menu / Products</h4>
+  <div>
+    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#addCatModal">+ Category</button>
+    <button class="btn btn-sv btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">+ Add Product</button>
+  </div>
+</div>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+  <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Buffet</th><th>Available</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for p in items %}
+    <tr>
+      <td>{{ p.name }}</td><td>{{ p.category.name if p.category else '-' }}</td>
+      <td>{% if p.is_buffet %}varies{% else %}₱{{ '%.2f'|format(p.selling_price) }}{% endif %}</td>
+      <td>{{ 'Yes' if p.is_buffet else 'No' }}</td>
+      <td>{{ 'Yes' if p.available else 'No' }}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal{{ p.id }}">Edit</button>
+        <form method="POST" action="{{ url_for('admin.delete_product', id=p.id) }}" style="display:inline" onsubmit="return confirm('Delete this product?')"><button class="btn btn-sm btn-outline-danger">Delete</button></form>
+      </td>
+    </tr>
+    <div class="modal fade" id="editModal{{ p.id }}"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h6>Edit {{ p.name }}</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="POST" action="{{ url_for('admin.edit_product', id=p.id) }}" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="text" name="name" class="form-control mb-2" value="{{ p.name }}" required>
+          <select name="category_id" class="form-select mb-2">{% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if p.category_id==c.id }}>{{ c.name }}</option>{% endfor %}</select>
+          <input type="number" step="0.01" name="selling_price" class="form-control mb-2" value="{{ p.selling_price }}" placeholder="Selling price">
+          <input type="number" step="0.01" name="cost_price" class="form-control mb-2" value="{{ p.cost_price }}" placeholder="Cost price">
+          <input type="text" name="barcode" class="form-control mb-2" value="{{ p.barcode or '' }}" placeholder="Barcode">
+          <textarea name="description" class="form-control mb-2">{{ p.description or '' }}</textarea>
+          <select name="inventory_item_id" class="form-select mb-2"><option value="">No inventory link</option>{% for i in inv_items %}<option value="{{ i.id }}" {{ 'selected' if p.inventory_item_id==i.id }}>{{ i.name }}</option>{% endfor %}</select>
+          <input type="number" step="0.01" name="deduct_qty" class="form-control mb-2" value="{{ p.deduct_qty }}" placeholder="Deduct qty per sale">
+          <input type="file" name="image" class="form-control mb-2" accept="image/*">
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="available" {{ 'checked' if p.available }}><label class="form-check-label">Available</label></div>
+          {% if p.is_buffet %}
+          <hr><small class="text-muted">Buffet Tiers</small>
+          {% for tier in ['adult','senior','pwd','kids','free'] %}
+          <div class="input-group input-group-sm mb-1"><span class="input-group-text">{{ tier }}</span><input type="number" step="0.01" name="tier_{{ tier }}" class="form-control" value="{{ p.tier_price(tier) }}"></div>
+          {% endfor %}
+          {% endif %}
+        </div>
+        <div class="modal-footer"><button class="btn btn-sv btn-sm">Save</button></div>
+      </form>
+      <div class="modal-body border-top">
+        <small class="text-muted fw-bold">Recipe (ingredients used per unit sold)</small>
+        {% for r in p.recipe_items %}
+        <div class="d-flex align-items-center justify-content-between small py-1">
+          <span>{{ r.inventory_item.name if r.inventory_item else '?' }} — {{ r.quantity_per_unit|round(3) }} {{ r.inventory_item.unit if r.inventory_item else '' }} / unit</span>
+          <form method="POST" action="{{ url_for('admin.delete_recipe_item', product_id=p.id, recipe_id=r.id) }}" onsubmit="return confirm('Remove this ingredient?')">
+            <button class="btn btn-sm btn-outline-danger py-0 px-2">&times;</button>
+          </form>
+        </div>
+        {% else %}
+        <p class="small text-muted mb-1">No recipe set. {% if p.inventory_item_id %}Falls back to the single inventory link above.{% else %}This product doesn't deduct inventory.{% endif %}</p>
+        {% endfor %}
+        <form method="POST" action="{{ url_for('admin.add_recipe_item', id=p.id) }}" class="d-flex gap-1 mt-2">
+          <select name="inventory_item_id" class="form-select form-select-sm" required>
+            <option value="">Add ingredient…</option>
+            {% for i in inv_items %}<option value="{{ i.id }}">{{ i.name }} ({{ i.unit }})</option>{% endfor %}
+          </select>
+          <input type="number" step="0.001" min="0.001" name="quantity_per_unit" class="form-control form-control-sm" placeholder="Qty" style="max-width:90px" required>
+          <button class="btn btn-sm btn-outline-secondary">Add</button>
+        </form>
+      </div>
+    </div></div></div>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+<div class="modal fade" id="addProductModal"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5>Add Product</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form method="POST" action="{{ url_for('admin.add_product') }}" enctype="multipart/form-data">
+    <div class="modal-body">
+      <input type="text" name="name" class="form-control mb-2" placeholder="Product name" required>
+      <select name="category_id" class="form-select mb-2"><option value="">No category</option>{% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+      <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_buffet" id="isBuffetCk" onchange="document.getElementById('regularFields').classList.toggle('d-none'); document.getElementById('buffetFields').classList.toggle('d-none');"><label class="form-check-label">This is a Buffet item (tiered pricing)</label></div>
+      <div id="regularFields">
+        <input type="number" step="0.01" name="selling_price" class="form-control mb-2" placeholder="Selling price">
+      </div>
+      <div id="buffetFields" class="d-none">
+        {% for tier in ['adult','senior','pwd','kids','free'] %}
+        <div class="input-group input-group-sm mb-1"><span class="input-group-text">{{ tier }}</span><input type="number" step="0.01" name="tier_{{ tier }}" class="form-control" value="0"></div>
+        {% endfor %}
+      </div>
+      <input type="number" step="0.01" name="cost_price" class="form-control mb-2" placeholder="Cost price">
+      <input type="text" name="barcode" class="form-control mb-2" placeholder="Barcode (optional)">
+      <textarea name="description" class="form-control mb-2" placeholder="Description"></textarea>
+      <select name="inventory_item_id" class="form-select mb-2"><option value="">No inventory link</option>{% for i in inv_items %}<option value="{{ i.id }}">{{ i.name }}</option>{% endfor %}</select>
+      <input type="number" step="0.01" name="deduct_qty" class="form-control mb-2" placeholder="Deduct qty per sale" value="1">
+      <input type="file" name="image" class="form-control" accept="image/*">
+    </div>
+    <div class="modal-footer"><button class="btn btn-sv">Add Product</button></div>
+  </form>
+</div></div></div>
+
+<div class="modal fade" id="addCatModal"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5>Add Category</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form method="POST" action="{{ url_for('admin.add_category') }}">
+    <div class="modal-body"><input type="text" name="name" class="form-control" placeholder="Category name" required></div>
+    <div class="modal-footer"><button class="btn btn-sv">Add</button></div>
+  </form>
+</div></div></div>
+{% endblock %}

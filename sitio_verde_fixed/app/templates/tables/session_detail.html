@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ session.session_number }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="fw-bold mb-0">{{ session.session_number }}</h4>
+    <small class="text-muted">{{ session.table_names() }} &middot; {{ session.customer_name }} &middot; {{ session.pax }} pax &middot; opened {{ session.opened_at.strftime('%b %d, %I:%M %p') }}</small>
+  </div>
+  <span class="badge {{ 'bg-success' if session.status == 'open' else 'bg-secondary' }}">{{ session.status|upper }}</span>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card p-3">
+      <h6 class="fw-bold">Orders on this tab</h6>
+      {% for s in session.sales %}
+      <div class="border-bottom py-2 d-flex justify-content-between align-items-start">
+        <div>
+          <a href="{{ url_for('pos.sale_detail', sale_id=s.id) }}">{{ s.sale_number }}</a>
+          {% if s.status == 'voided' %}<span class="badge bg-danger">VOIDED</span>{% endif %}
+          {% if s.status == 'open' %}<span class="badge bg-warning text-dark">PENDING APPROVAL</span>{% endif %}
+          <div class="small text-muted">{{ s.created_at.strftime('%I:%M %p') }} &middot; {{ s.items|length }} item(s)</div>
+        </div>
+        <div class="text-end">
+          <div>₱{{ '%.2f'|format(s.total) }}</div>
+          <small class="text-muted">Paid: ₱{{ '%.2f'|format(s.net_paid()) }}</small>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No orders yet.</p>
+      {% endfor %}
+      {% if session.status == 'open' %}
+      <a href="{{ url_for('pos.index', table_id=session.tables[0].id) }}" class="btn btn-sm btn-outline-secondary mt-3">
+        <i class="bi bi-plus-circle"></i> Add Another Order
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card p-3">
+      <h6 class="fw-bold">Bill Summary</h6>
+      <div class="d-flex justify-content-between"><span>Total Billed</span><span>₱{{ '%.2f'|format(session.total_billed()) }}</span></div>
+      <div class="d-flex justify-content-between"><span>Total Paid</span><span>₱{{ '%.2f'|format(session.total_paid()) }}</span></div>
+      <div class="d-flex justify-content-between fw-bold fs-5"><span>Balance Due</span><span>₱{{ '%.2f'|format(session.balance_due()) }}</span></div>
+
+      {% if session.status == 'open' %}
+      <hr>
+      <form method="POST" action="{{ url_for('tables_bp.close_session', session_id=session.id) }}">
+        {% if session.balance_due() > 0 %}
+        <label class="form-label small mb-0">Final Payment</label>
+        <div class="input-group input-group-sm mb-2">
+          <select name="final_payment_method" class="form-select">
+            <option value="Cash">Cash</option>
+            <option value="GCash">GCash</option>
+            <option value="Credit Card">Credit Card</option>
+          </select>
+          <input type="number" step="0.01" min="0" name="final_payment_amount" class="form-control" value="{{ session.balance_due() }}" required>
+        </div>
+        {% endif %}
+        <button class="btn btn-sv w-100" onclick="return confirm('Close this tab and free the table(s)?')">
+          {% if session.balance_due() > 0 %}Pay & Close Table{% else %}Close Table{% endif %}
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

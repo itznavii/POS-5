@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Reports</h4>
+<div class="mb-3">
+  {% for p in ['daily','weekly','monthly','yearly'] %}
+  <a href="{{ url_for('reports.index', period=p) }}" class="btn btn-sm {{ 'btn-sv' if period==p else 'btn-outline-secondary' }}">{{ p|capitalize }}</a>
+  {% endfor %}
+  <span class="text-muted small ms-2">{{ start }} to {{ end }}</span>
+  <div class="btn-group float-end">
+    <a href="{{ url_for('reports.export', fmt='csv', period=period) }}" class="btn btn-sm btn-outline-success">CSV</a>
+    <a href="{{ url_for('reports.export', fmt='xlsx', period=period) }}" class="btn btn-sm btn-outline-success">Excel</a>
+    <a href="{{ url_for('reports.export', fmt='pdf', period=period) }}" class="btn btn-sm btn-outline-danger">PDF</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card card-stat p-3"><small class="text-muted">Total Sales</small><h4>₱{{ '%.2f'|format(total_sales) }}</h4></div></div>
+  <div class="col-md-4"><div class="card card-stat p-3"><small class="text-muted">Transactions</small><h4>{{ transaction_count }}</h4></div></div>
+  <div class="col-md-4"><div class="card card-stat p-3" style="border-left-color:#c0392b"><small class="text-muted">Net (Sales - Expenses)</small><h4>₱{{ '%.2f'|format(net) }}</h4></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card card-stat p-3"><small class="text-muted">Total Pax Today</small><h4>{{ quick_pax.today }}</h4></div></div>
+  <div class="col-md-4"><div class="card card-stat p-3"><small class="text-muted">Total Pax This Week</small><h4>{{ quick_pax.this_week }}</h4></div></div>
+  <div class="col-md-4"><div class="card card-stat p-3"><small class="text-muted">Total Pax Last Month</small><h4>{{ quick_pax.last_month }}</h4></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12">
+    <div class="card p-3">
+      <h6 class="fw-bold">Guest Breakdown — {{ start }} to {{ end }}</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <thead><tr><th>Guest Type</th><th>Pax</th><th>% Share</th></tr></thead>
+        <tbody>
+          <tr><td>Adult</td><td>{{ pax.adult }}</td><td>{{ pax.pct.adult }}%</td></tr>
+          <tr><td>Senior Citizen</td><td>{{ pax.senior }}</td><td>{{ pax.pct.senior }}%</td></tr>
+          <tr><td>PWD</td><td>{{ pax.pwd }}</td><td>{{ pax.pct.pwd }}%</td></tr>
+          <tr><td>Kids</td><td>{{ pax.kids }}</td><td>{{ pax.pct.kids }}%</td></tr>
+          <tr><td>Free of Charge (below 3 ft or birthday)</td><td>{{ pax.free }}</td><td>{{ pax.pct.free }}%</td></tr>
+          <tr class="fw-bold"><td>Total</td><td>{{ pax.total }}</td><td>100%</td></tr>
+        </tbody>
+      </table>
+</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Top Selling Menu</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <thead><tr><th>Item</th><th>Qty</th><th>Revenue</th></tr></thead>
+        <tbody>{% for name, qty, revenue in top_products %}<tr><td>{{ name }}</td><td>{{ qty }}</td><td>₱{{ '%.2f'|format(revenue) }}</td></tr>{% endfor %}</tbody>
+      </table>
+</div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Payment Method Breakdown</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <thead><tr><th>Method</th><th>Total</th></tr></thead>
+        <tbody>{% for method, total in payments_breakdown %}<tr><td>{{ method }}</td><td>₱{{ '%.2f'|format(total) }}</td></tr>{% endfor %}</tbody>
+      </table>
+</div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Reservations in Period</h6>
+      <p>{{ reservations_in_range|length }} reservations</p>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Expenses in Period</h6>
+      <p>₱{{ '%.2f'|format(total_expenses) }} across {{ expenses_in_range|length }} entries</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

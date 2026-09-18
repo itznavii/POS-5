@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sitio Verde{% endblock %} | Sitio Verde Buffet Restaurant</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-sv shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}"><i class="bi bi-flower1"></i> Sitio Verde</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav1">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav1">
+      <div class="d-lg-none">
+        <a class="nav-link" href="{{ url_for('main.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a class="nav-link" href="{{ url_for('pos.index') }}"><i class="bi bi-cash-register"></i> POS</a>
+        <a class="nav-link" href="{{ url_for('tables_bp.layout') }}"><i class="bi bi-grid-3x3-gap"></i> Tables</a>
+        <a class="nav-link" href="{{ url_for('kitchen.queue') }}"><i class="bi bi-egg-fried"></i> Kitchen</a>
+        <a class="nav-link" href="{{ url_for('reservations.list_reservations') }}"><i class="bi bi-calendar-check"></i> Reservations</a>
+        <a class="nav-link" href="{{ url_for('customers.list_customers') }}"><i class="bi bi-people"></i> Customers</a>
+        {% if current_user.is_admin() %}
+        <a class="nav-link" href="{{ url_for('inventory.list_items') }}"><i class="bi bi-box-seam"></i> Inventory</a>
+        <a class="nav-link" href="{{ url_for('admin.products') }}"><i class="bi bi-egg-fried"></i> Menu / Products</a>
+        <a class="nav-link" href="{{ url_for('reports.index') }}"><i class="bi bi-bar-chart"></i> Reports</a>
+        <a class="nav-link" href="{{ url_for('expenses.list_expenses') }}"><i class="bi bi-wallet2"></i> Expenses</a>
+        <a class="nav-link" href="{{ url_for('admin.users') }}"><i class="bi bi-person-badge"></i> Staff</a>
+        <a class="nav-link" href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i> Settings</a>
+        <a class="nav-link" href="{{ url_for('admin.backup') }}"><i class="bi bi-cloud-arrow-down"></i> Backup</a>
+        <a class="nav-link" href="{{ url_for('pos.approvals') }}"><i class="bi bi-shield-check"></i> Approvals</a>
+        <a class="nav-link" href="{{ url_for('shifts.all_shifts') }}"><i class="bi bi-cash-stack"></i> All Shifts</a>
+        {% endif %}
+        <a class="nav-link" href="{{ url_for('pos.history') }}"><i class="bi bi-receipt"></i> Sales History</a>
+        <a class="nav-link" href="{{ url_for('shifts.my_shift') }}"><i class="bi bi-cash-stack"></i> My Shift</a>
+        <hr class="text-white-50">
+      </div>
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('notifications.list_notifications') }}">
+            <i class="bi bi-bell"></i>
+            {% if unread_notifications %}<span class="badge bg-danger">{{ unread_notifications }}</span>{% endif %}
+          </a>
+        </li>
+        <li class="nav-item"><span class="nav-link">{{ current_user.name or current_user.username }} <small class="badge badge-sv">{{ current_user.role }}</small></span></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-2 sidebar py-3 d-none d-lg-block">
+      <a href="{{ url_for('main.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+      <a href="{{ url_for('pos.index') }}"><i class="bi bi-cash-register"></i> POS</a>
+      <a href="{{ url_for('tables_bp.layout') }}"><i class="bi bi-grid-3x3-gap"></i> Tables</a>
+      <a href="{{ url_for('kitchen.queue') }}"><i class="bi bi-egg-fried"></i> Kitchen</a>
+      <a href="{{ url_for('reservations.list_reservations') }}"><i class="bi bi-calendar-check"></i> Reservations</a>
+      <a href="{{ url_for('customers.list_customers') }}"><i class="bi bi-people"></i> Customers</a>
+      {% if current_user.is_admin() %}
+      <a href="{{ url_for('inventory.list_items') }}"><i class="bi bi-box-seam"></i> Inventory</a>
+      <a href="{{ url_for('admin.products') }}"><i class="bi bi-egg-fried"></i> Menu / Products</a>
+      <a href="{{ url_for('reports.index') }}"><i class="bi bi-bar-chart"></i> Reports</a>
+      <a href="{{ url_for('expenses.list_expenses') }}"><i class="bi bi-wallet2"></i> Expenses</a>
+      <a href="{{ url_for('admin.users') }}"><i class="bi bi-person-badge"></i> Staff</a>
+      <a href="{{ url_for('admin.settings') }}"><i class="bi bi-gear"></i> Settings</a>
+      <a href="{{ url_for('admin.backup') }}"><i class="bi bi-cloud-arrow-down"></i> Backup</a>
+      <a href="{{ url_for('pos.approvals') }}"><i class="bi bi-shield-check"></i> Approvals</a>
+      <a href="{{ url_for('shifts.all_shifts') }}"><i class="bi bi-cash-stack"></i> All Shifts</a>
+      {% endif %}
+      <a href="{{ url_for('pos.history') }}"><i class="bi bi-receipt"></i> Sales History</a>
+      <a href="{{ url_for('shifts.my_shift') }}"><i class="bi bi-cash-stack"></i> My Shift</a>
+    </div>
+    <div class="col-lg-10 py-3">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% else %}
+  {% block guest_content %}{% endblock %}
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Auto-inject CSRF token into every same-page form that doesn't already have one.
+document.addEventListener('DOMContentLoaded', function () {
+  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  document.querySelectorAll('form').forEach(function (form) {
+    if (form.method.toUpperCase() === 'POST' && !form.querySelector('input[name="csrf_token"]')) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'csrf_token';
+      input.value = token;
+      form.appendChild(input);
+    }
+  });
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

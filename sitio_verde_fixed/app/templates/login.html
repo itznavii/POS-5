@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block guest_content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height:100vh; background: linear-gradient(135deg, var(--sv-green-900), var(--sv-green-600));">
+  <div class="card shadow-lg p-4" style="width: 380px; max-width: 92vw; border-radius: 16px;">
+    <div class="text-center mb-3">
+      <i class="bi bi-flower1" style="font-size:2.5rem; color: var(--sv-green-700);"></i>
+      <h4 class="fw-bold mt-2">Sitio Verde Buffet Restaurant</h4>
+      <small class="text-muted">POS &amp; Reservation Management</small>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control" required autofocus>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-sv w-100">Login</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

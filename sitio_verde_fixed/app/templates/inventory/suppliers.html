@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Suppliers</h4>
+<div class="card p-3 mb-3">
+<form method="POST" class="row g-2">
+  <div class="col-md-5"><input type="text" name="name" class="form-control" placeholder="Supplier name" required></div>
+  <div class="col-md-5"><input type="text" name="contact" class="form-control" placeholder="Contact info"></div>
+  <div class="col-md-2"><button class="btn btn-sv w-100">Add</button></div>
+</form>
+</div>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm">
+  <thead><tr><th>Name</th><th>Contact</th></tr></thead>
+  <tbody>{% for s in items %}<tr><td>{{ s.name }}</td><td>{{ s.contact }}</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h3 class="fw-bold mb-3">Welcome, {{ current_user.name or current_user.username }}</h3>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Today's Sales</small><h4>₱{{ '%.2f'|format(today_sales) }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Today's Reservations</small><h4>{{ today_reservations }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Occupied Tables</small><h4>{{ occupied_tables }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Upcoming Reservations</small><h4>{{ upcoming }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Monthly Revenue</small><h4>₱{{ '%.2f'|format(monthly) }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Best Seller (This Month)</small><h4 style="font-size:1.1rem">{{ best_seller }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3" style="border-left-color:#c0392b"><small class="text-muted">Low Stock Alerts</small><h4>{{ low_stock }}</h4></div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card card-stat p-3"><small class="text-muted">Quick Actions</small>
+      <div class="d-flex gap-1 flex-wrap mt-1">
+        <a href="{{ url_for('pos.index') }}" class="btn btn-sm btn-sv">New Sale</a>
+        <a href="{{ url_for('reservations.new_reservation') }}" class="btn btn-sm btn-outline-success">New Reservation</a>
+        {% if current_user.is_admin() %}<a href="{{ url_for('inventory.list_items') }}" class="btn btn-sm btn-outline-secondary">Inventory</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-7">
+    <div class="card p-3">
+      <h6 class="fw-bold">Sales - Last 7 Days</h6>
+      <div style="position: relative; height: 260px;">
+        <canvas id="salesChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card p-3">
+      <h6 class="fw-bold">Reservations by Status</h6>
+      <div style="position: relative; height: 260px;">
+        <canvas id="resChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Recent Transactions</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <thead><tr><th>#</th><th>Customer</th><th>Total</th><th>Time</th></tr></thead>
+        <tbody>
+          {% for s in recent_sales %}
+          <tr><td><a href="{{ url_for('pos.sale_detail', sale_id=s.id) }}">{{ s.sale_number }}</a></td><td>{{ s.customer_name }}</td><td>₱{{ '%.2f'|format(s.total) }}</td><td>{{ s.created_at.strftime('%H:%M') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Upcoming Reservations</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Pax</th></tr></thead>
+        <tbody>
+          {% for r in upcoming_list %}
+          <tr><td><a href="{{ url_for('reservations.detail', id=r.id) }}">{{ r.reservation_number }}</a></td><td>{{ r.customer_name }}</td><td>{{ r.date }}</td><td>{{ r.pax }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+fetch("{{ url_for('main.sales_chart') }}").then(r=>r.json()).then(d=>{
+  new Chart(document.getElementById('salesChart'), {
+    type: 'line',
+    data: { labels: d.labels, datasets: [{ label: 'Sales (₱)', data: d.data, borderColor: '#1e5631', backgroundColor: 'rgba(30,86,49,.15)', fill:true, tension:.3 }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+});
+fetch("{{ url_for('main.reservation_chart') }}").then(r=>r.json()).then(d=>{
+  new Chart(document.getElementById('resChart'), {
+    type: 'doughnut',
+    data: { labels: d.labels, datasets: [{ data: d.data, backgroundColor: ['#f0ad4e','#2f7a4f','#0d6efd','#198754','#6c757d','#dc3545'] }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+});
+</script>
+{% endblock %}

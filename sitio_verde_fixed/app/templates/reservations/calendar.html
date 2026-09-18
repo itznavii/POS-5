@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Reservation Calendar{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Reservation Calendar</h4>
+<div class="card p-3"><div id="calendar"></div></div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const calendarEl = document.getElementById('calendar');
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    height: 650,
+    events: "{{ url_for('reservations.calendar_events') }}"
+  });
+  calendar.render();
+});
+</script>
+{% endblock %}

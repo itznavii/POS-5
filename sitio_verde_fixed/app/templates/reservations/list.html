@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Reservations{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold">Reservations</h4>
+  <div>
+    <a href="{{ url_for('reservations.calendar_view') }}" class="btn btn-outline-success btn-sm"><i class="bi bi-calendar3"></i> Calendar</a>
+    <a href="{{ url_for('reservations.new_reservation') }}" class="btn btn-sv btn-sm">+ New Reservation</a>
+  </div>
+</div>
+<div class="mb-3">
+  {% for s in ['Reserved','Confirmed','Checked In','Completed','Cancelled','No Show'] %}
+  <a href="{{ url_for('reservations.list_reservations', status=s) }}" class="btn btn-sm {{ 'btn-sv' if status==s else 'btn-outline-secondary' }}">{{ s }}</a>
+  {% endfor %}
+  <a href="{{ url_for('reservations.list_reservations') }}" class="btn btn-sm {{ 'btn-sv' if not status else 'btn-outline-secondary' }}">All</a>
+</div>
+<form method="GET" class="mb-3">
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  <input type="text" name="q" class="form-control form-control-sm" style="max-width:300px" placeholder="Search name, phone, or reservation #…" value="{{ q }}">
+</form>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+  <thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Time</th><th>Pax</th><th>Event</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for r in items %}
+    <tr onclick="window.location='{{ url_for('reservations.detail', id=r.id) }}'" style="cursor:pointer">
+      <td>{{ r.reservation_number }}</td><td>{{ r.customer_name }}</td><td>{{ r.date }}</td><td>{{ r.time.strftime('%H:%M') }}</td><td>{{ r.pax }}</td><td>{{ r.event_type }}</td>
+      <td><span class="badge bg-secondary">{{ r.status }}</span></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="7" class="text-muted text-center py-3">No reservations found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% with endpoint='reservations.list_reservations', extra_args={'status': status, 'q': q} %}{% include "_pagination.html" %}{% endwith %}
+</div>
+{% endblock %}

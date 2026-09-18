@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">{{ c.name }}</h4>
+<p class="text-muted">{{ c.phone }} &middot; {{ c.email or '' }}</p>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Visit / Sales History</h6>
+      <div class="table-responsive">
+<table class="table table-sm"><thead><tr><th>#</th><th>Date</th><th>Total</th></tr></thead>
+      <tbody>{% for s in sales %}<tr><td>{{ s.sale_number }}</td><td>{{ s.created_at.strftime('%Y-%m-%d') }}</td><td>₱{{ '%.2f'|format(s.total) }}</td></tr>{% endfor %}</tbody></table>
+</div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h6 class="fw-bold">Reservation History</h6>
+      <div class="table-responsive">
+<table class="table table-sm"><thead><tr><th>#</th><th>Date</th><th>Status</th></tr></thead>
+      <tbody>{% for r in reservation_history %}<tr><td>{{ r.reservation_number }}</td><td>{{ r.date }}</td><td>{{ r.status }}</td></tr>{% endfor %}</tbody></table>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

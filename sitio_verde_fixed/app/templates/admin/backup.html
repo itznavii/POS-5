@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Backup{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Database Backup</h4>
+<div class="card p-4" style="max-width:600px;">
+  <p class="text-muted small">Exports a JSON summary of sales, reservations, and expenses for record-keeping. For a full production restore point, use your hosting provider's PostgreSQL backup/snapshot tools (e.g. Render managed Postgres backups) — this export is a convenience log, not a binary DB dump.</p>
+  <a href="{{ url_for('admin.backup_download') }}" class="btn btn-sv"><i class="bi bi-cloud-arrow-down"></i> Download Backup (JSON)</a>
+</div>
+{% endblock %}

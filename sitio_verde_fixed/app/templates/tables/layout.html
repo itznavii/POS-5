@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Tables{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold">Restaurant Layout</h4>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#mergeModal">Merge Tables</button>
+    {% if current_user.is_admin() %}
+    <button class="btn btn-sv btn-sm" data-bs-toggle="modal" data-bs-target="#addTableModal">+ Add Table</button>
+    {% endif %}
+  </div>
+</div>
+<div class="d-flex flex-wrap gap-3 mb-4">
+  {% for t in tables %}
+  <div class="text-center">
+    <div class="table-tile table-{{ t.status }}" data-bs-toggle="dropdown" role="button">
+      {{ t.name }}{% if t.session_id %}<br><small>{{ t.session.session_number }}</small>{% endif %}
+    </div>
+    <ul class="dropdown-menu">
+      <li><h6 class="dropdown-header">{{ t.name }} ({{ t.capacity }} pax) - {{ t.status }}</h6></li>
+      {% if t.session_id %}
+      <li><a class="dropdown-item" href="{{ url_for('tables_bp.session_detail', session_id=t.session_id) }}">
+        <i class="bi bi-receipt"></i> View Tab ({{ t.session.session_number }}) - Balance ₱{{ '%.2f'|format(t.session.balance_due()) }}
+      </a></li>
+      <li><a class="dropdown-item" href="{{ url_for('pos.index', table_id=t.id) }}"><i class="bi bi-plus-circle"></i> Add Order</a></li>
+      <li><hr class="dropdown-divider"></li>
+      {% elif t.status == 'available' %}
+      <li>
+        <form method="POST" action="{{ url_for('tables_bp.open_table', id=t.id) }}" class="px-3 py-1">
+          <input type="text" name="customer_name" class="form-control form-control-sm mb-1" placeholder="Customer name">
+          <input type="number" name="pax" class="form-control form-control-sm mb-1" placeholder="Guests" value="{{ t.capacity }}" min="1">
+          <button class="btn btn-sm btn-sv w-100">Open Table</button>
+        </form>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      {% endif %}
+      {% for s in ['available','occupied','reserved','cleaning'] %}
+      <li>
+        <form method="POST" action="{{ url_for('tables_bp.update_status', id=t.id) }}">
+          <button class="dropdown-item" name="status" value="{{ s }}">Set {{ s }}</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    <small class="text-muted d-block">{{ t.capacity }} pax</small>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card p-3 mb-3">
+  <h6 class="fw-bold">Transfer Table</h6>
+  <p class="small text-muted mb-2">Moves a table's whole open tab (and every order on it) to another table.</p>
+  <form method="POST" action="" class="row g-2" onsubmit="this.action='/tables/'+this.source.value+'/transfer'">
+    <div class="col-4"><select name="source" class="form-select form-select-sm">{% for t in tables %}<option value="{{ t.id }}">{{ t.name }}{% if t.session_id %} (open){% endif %}</option>{% endfor %}</select></div>
+    <div class="col-4"><select name="dest_table_id" class="form-select form-select-sm">{% for t in tables %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select></div>
+    <div class="col-4"><button class="btn btn-sm btn-outline-success">Transfer</button></div>
+  </form>
+</div>
+
+<div class="modal fade" id="mergeModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5>Merge Tables</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="POST" action="{{ url_for('tables_bp.merge') }}">
+      <div class="modal-body">
+        <p class="small text-muted">Select 2+ tables to combine under one shared tab. The first table checked becomes the primary.</p>
+        {% for t in tables %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="table_ids" value="{{ t.id }}" id="mergeT{{ t.id }}">
+          <label class="form-check-label" for="mergeT{{ t.id }}">{{ t.name }} ({{ t.status }}{% if t.session_id %}, tab {{ t.session.session_number }}{% endif %})</label>
+        </div>
+        {% endfor %}
+        <input type="text" name="customer_name" class="form-control form-control-sm mt-2" placeholder="Customer name (if opening a new tab)">
+      </div>
+      <div class="modal-footer"><button class="btn btn-sv">Merge</button></div>
+    </form>
+  </div></div>
+</div>
+
+<div class="modal fade" id="addTableModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5>Add Table</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="POST" action="{{ url_for('tables_bp.add_table') }}">
+      <div class="modal-body">
+        <input type="text" name="name" class="form-control mb-2" placeholder="Table name (e.g. T1)" required>
+        <input type="number" name="capacity" class="form-control" placeholder="Capacity" value="4">
+      </div>
+      <div class="modal-footer"><button class="btn btn-sv">Add</button></div>
+    </form>
+  </div></div>
+</div>
+{% endblock %}

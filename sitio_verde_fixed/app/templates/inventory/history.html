@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} History{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">{{ item.name }} - Transaction History</h4>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm">
+  <thead><tr><th>Date</th><th>Type</th><th>Quantity</th><th>Note</th></tr></thead>
+  <tbody>
+  {% for t in txns %}
+    <tr><td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td><span class="badge bg-secondary">{{ t.type }}</span></td><td>{{ t.quantity }}</td><td>{{ t.note }}</td></tr>
+  {% else %}
+    <tr><td colspan="4" class="text-muted text-center py-3">No transactions yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% with endpoint='inventory.history', extra_args={'id': item.id} %}{% include "_pagination.html" %}{% endwith %}
+</div>
+{% endblock %}

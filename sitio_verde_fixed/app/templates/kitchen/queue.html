@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Kitchen{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Kitchen Order Queue</h4>
+<div class="row g-3" id="queueGrid">
+{% for i in items %}
+  <div class="col-md-4">
+    <div class="card kitchen-card status-{{ i.kitchen_status }} p-3">
+      <div class="d-flex justify-content-between">
+        <strong>{{ i.product_name }}</strong>
+        <span class="badge bg-secondary">x{{ i.quantity }}</span>
+      </div>
+      <small class="text-muted">Sale {{ i.sale.sale_number }} {% if i.sale.table %}&middot; Table {{ i.sale.table.name }}{% endif %}</small>
+      <div class="btn-group btn-group-sm mt-2">
+        <form method="POST" action="{{ url_for('kitchen.update_status', id=i.id) }}"><button class="btn btn-outline-warning" name="status" value="preparing">Preparing</button></form>
+        <form method="POST" action="{{ url_for('kitchen.update_status', id=i.id) }}"><button class="btn btn-outline-success" name="status" value="ready">Ready</button></form>
+        <form method="POST" action="{{ url_for('kitchen.update_status', id=i.id) }}"><button class="btn btn-outline-secondary" name="status" value="served">Served</button></form>
+        <form method="POST" action="{{ url_for('kitchen.update_status', id=i.id) }}"><button class="btn btn-outline-dark" name="status" value="completed">Done</button></form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <p class="text-muted">No active kitchen orders.</p>
+{% endfor %}
+</div>
+{% endblock %}
