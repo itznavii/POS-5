@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}My Shift{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">Cashier Shift</h4>
+
+{% if shift %}
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="fw-bold mb-0">Open Shift</h6>
+    <span class="badge bg-success">OPEN</span>
+  </div>
+  <small class="text-muted">Opened {{ shift.opened_at.strftime('%b %d, %Y %I:%M %p') }} by {{ shift.user.name or shift.user.username }}</small>
+
+  <hr>
+  <div class="d-flex justify-content-between"><span>Opening cash float</span><span>₱{{ '%.2f'|format(shift.opening_cash) }}</span></div>
+  {% for method, amount in shift.payments_by_method().items() %}
+  <div class="d-flex justify-content-between"><span>{{ method }} taken in</span><span>₱{{ '%.2f'|format(amount) }}</span></div>
+  {% endfor %}
+  {% if shift.total_refunds() %}
+  <div class="d-flex justify-content-between text-danger"><span>Refunds paid out</span><span>-₱{{ '%.2f'|format(shift.total_refunds()) }}</span></div>
+  {% endif %}
+  <hr>
+  <div class="d-flex justify-content-between fw-bold fs-5">
+    <span>Expected cash in drawer</span><span>₱{{ '%.2f'|format(shift.expected_cash()) }}</span>
+  </div>
+  <small class="text-muted">Opening float + cash sales &minus; refunds. Non-cash payments aren't in the drawer.</small>
+
+  <hr>
+  <h6 class="fw-bold">Close Out</h6>
+  <form method="POST" action="{{ url_for('shifts.close_shift', id=shift.id) }}">
+    <label class="form-label small mb-0">Actual cash counted in drawer</label>
+    <input type="number" step="0.01" min="0" name="closing_cash_counted" class="form-control form-control-sm mb-2" required>
+    <input type="text" name="notes" class="form-control form-control-sm mb-2" placeholder="Notes (optional)">
+    <button class="btn btn-sv" onclick="return confirm('Close this shift? This cannot be undone.')">Close Shift</button>
+  </form>
+</div>
+{% else %}
+<div class="card p-3 mb-3">
+  <h6 class="fw-bold">Open a Shift</h6>
+  <p class="small text-muted">Record the cash float you're starting the till with.</p>
+  <form method="POST" action="{{ url_for('shifts.open_shift') }}" class="row g-2">
+    <div class="col-auto">
+      <input type="number" step="0.01" min="0" name="opening_cash" class="form-control form-control-sm" placeholder="Opening cash" required>
+    </div>
+    <div class="col-auto"><button class="btn btn-sv btn-sm">Open Shift</button></div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card p-3">
+  <h6 class="fw-bold">My Past Shifts</h6>
+  <div class="table-responsive">
+  <table class="table table-sm table-hover">
+    <thead><tr><th>Opened</th><th>Closed</th><th>Expected</th><th>Counted</th><th>Variance</th><th>Approved</th><th></th></tr></thead>
+    <tbody>
+    {% for s in history %}
+      {% set v = s.variance() %}
+      <tr>
+        <td>{{ s.opened_at.strftime('%m/%d %I:%M %p') }}</td>
+        <td>{{ s.closed_at.strftime('%m/%d %I:%M %p') if s.closed_at else '-' }}</td>
+        <td>₱{{ '%.2f'|format(s.expected_cash()) }}</td>
+        <td>₱{{ '%.2f'|format(s.closing_cash_counted or 0) }}</td>
+        <td class="{{ 'text-danger' if v and v < 0 else ('text-success' if v and v > 0 else '') }}">
+          {% if v is not none %}₱{{ '%.2f'|format(v) }}{% else %}-{% endif %}
+        </td>
+        <td>{% if s.approved_by %}<span class="badge bg-success">{{ s.approved_by.username }}</span>{% else %}<span class="badge bg-secondary">Pending</span>{% endif %}</td>
+        <td><a href="{{ url_for('shifts.detail', id=s.id) }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="text-muted text-center py-3">No closed shifts yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% with endpoint='shifts.my_shift' %}{% include "_pagination.html" %}{% endwith %}
+</div>
+{% endblock %}

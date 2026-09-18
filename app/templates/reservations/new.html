@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}New Reservation{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">New Reservation</h4>
+<div class="card p-4" style="max-width:700px;">
+<form method="POST" enctype="multipart/form-data">
+  <div class="row g-2">
+    <div class="col-md-6"><label class="form-label">Customer Name</label><input type="text" name="customer_name" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label">Phone Number</label><input type="text" name="phone" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label">Email (optional)</label><input type="email" name="email" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Inquiry Number</label><input type="text" name="inquiry_number" class="form-control"></div>
+    <div class="col-md-4"><label class="form-label">Date</label><input type="date" name="date" class="form-control" required></div>
+    <div class="col-md-4"><label class="form-label">Time</label><input type="time" name="time" class="form-control" required></div>
+    <div class="col-md-4"><label class="form-label">Expected Guests (PAX)</label><input type="number" name="pax" class="form-control" min="1" required></div>
+    <div class="col-md-6"><label class="form-label">Event / Occasion</label>
+      <select name="event_type" class="form-select">
+        <option>Birthday</option><option>Wedding</option><option>Christening</option>
+        <option>Company Event</option><option>Family Gathering</option><option>Anniversary</option><option>Meeting</option><option>Other</option>
+      </select>
+    </div>
+    <div class="col-md-6"><label class="form-label">Assigned Staff</label><input type="text" name="assigned_staff" class="form-control"></div>
+    <div class="col-12"><label class="form-label">Special Requests</label><textarea name="special_requests" class="form-control"></textarea></div>
+  </div>
+  <hr>
+  <h6 class="fw-bold">Optional Down Payment</h6>
+  <div class="row g-2">
+    <div class="col-md-4"><label class="form-label">Amount</label><input type="number" step="0.01" name="down_payment" class="form-control" value="0"></div>
+    <div class="col-md-4"><label class="form-label">Method</label>
+      <select name="payment_method" class="form-select"><option>Cash</option><option>GCash</option><option>Bank Transfer</option><option>Card</option></select>
+    </div>
+    <div class="col-md-4"><label class="form-label">Reference #</label><input type="text" name="reference_number" class="form-control"></div>
+    <div class="col-12"><label class="form-label">Upload Proof of Payment (image/PDF)</label><input type="file" name="proof_of_payment" class="form-control" accept="image/*,.pdf"></div>
+  </div>
+  <button class="btn btn-sv mt-3">Create Reservation</button>
+</form>
+</div>
+{% endblock %}

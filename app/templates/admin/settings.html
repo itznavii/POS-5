@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">System Settings</h4>
+<div class="card p-4" style="max-width:600px;">
+<form method="POST">
+  <label class="form-label">Restaurant Name</label>
+  <input type="text" name="restaurant_name" class="form-control mb-2" value="{{ settings.get('restaurant_name', 'Sitio Verde Buffet Restaurant') }}">
+  <label class="form-label">Receipt Footer Message</label>
+  <input type="text" name="receipt_footer" class="form-control mb-2" value="{{ settings.get('receipt_footer', 'Thank you for dining with us!') }}">
+  <button class="btn btn-sv">Save Settings</button>
+</form>
+</div>
+{% endblock %}

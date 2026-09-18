@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Shift #{{ shift.id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="fw-bold mb-0">Shift Closing Report #{{ shift.id }}</h4>
+    <small class="text-muted">
+      {{ shift.user.name or shift.user.username }} &middot;
+      {{ shift.opened_at.strftime('%b %d, %Y %I:%M %p') }}
+      {% if shift.closed_at %}&ndash; {{ shift.closed_at.strftime('%I:%M %p') }}{% endif %}
+    </small>
+  </div>
+  <span class="badge {{ 'bg-success' if shift.status == 'open' else 'bg-secondary' }}">{{ shift.status|upper }}</span>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card p-3">
+      <h6 class="fw-bold">Cash Reconciliation</h6>
+      <div class="d-flex justify-content-between"><span>Opening cash float</span><span>₱{{ '%.2f'|format(shift.opening_cash) }}</span></div>
+      <div class="d-flex justify-content-between"><span>Cash sales</span><span>+₱{{ '%.2f'|format(shift.cash_sales()) }}</span></div>
+      <div class="d-flex justify-content-between"><span>Refunds paid out</span><span>-₱{{ '%.2f'|format(shift.total_refunds()) }}</span></div>
+      <hr class="my-2">
+      <div class="d-flex justify-content-between fw-bold"><span>Expected in drawer</span><span>₱{{ '%.2f'|format(shift.expected_cash()) }}</span></div>
+      {% if shift.closing_cash_counted is not none %}
+      <div class="d-flex justify-content-between"><span>Actual counted</span><span>₱{{ '%.2f'|format(shift.closing_cash_counted) }}</span></div>
+      {% set v = shift.variance() %}
+      <div class="d-flex justify-content-between fw-bold fs-5 {{ 'text-danger' if v < 0 else ('text-success' if v > 0 else '') }}">
+        <span>Variance</span>
+        <span>₱{{ '%.2f'|format(v) }} {% if v < 0 %}(short){% elif v > 0 %}(over){% else %}(balanced){% endif %}</span>
+      </div>
+      {% endif %}
+      {% if shift.notes %}<div class="mt-2 small text-muted">Notes: {{ shift.notes }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card p-3 mb-3">
+      <h6 class="fw-bold">All Payments Collected</h6>
+      {% for method, amount in shift.payments_by_method().items() %}
+      <div class="d-flex justify-content-between"><span>{{ method }}</span><span>₱{{ '%.2f'|format(amount) }}</span></div>
+      {% else %}
+      <p class="text-muted mb-0 small">No payments recorded this shift.</p>
+      {% endfor %}
+      <hr class="my-2">
+      <small class="text-muted">{{ shift.sales_in_shift()|length }} completed sale(s)</small>
+    </div>
+
+    <div class="card p-3">
+      <h6 class="fw-bold">Manager Approval</h6>
+      {% if shift.approved_by %}
+        <p class="mb-0"><span class="badge bg-success">Approved</span> by {{ shift.approved_by.name or shift.approved_by.username }}</p>
+      {% elif shift.status == 'closed' and current_user.is_admin() %}
+        <form method="POST" action="{{ url_for('shifts.approve', id=shift.id) }}">
+          <button class="btn btn-sv btn-sm">Approve Closing</button>
+        </form>
+      {% elif shift.status == 'closed' %}
+        <p class="mb-0 text-muted small">Awaiting manager approval.</p>
+      {% else %}
+        <p class="mb-0 text-muted small">Shift must be closed before approval.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<a href="{{ url_for('shifts.my_shift') }}" class="btn btn-outline-secondary btn-sm mt-3">Back to My Shift</a>
+{% endblock %}

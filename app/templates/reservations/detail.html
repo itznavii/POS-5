@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ r.reservation_number }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold">{{ r.reservation_number }} <span class="badge bg-secondary">{{ r.status }}</span></h4>
+  <div class="btn-group">
+    {% if r.status in ['Reserved'] %}
+    <form method="POST" action="{{ url_for('reservations.confirm', id=r.id) }}"><button class="btn btn-sm btn-sv">Confirm</button></form>
+    {% endif %}
+    {% if r.status in ['Reserved','Confirmed'] %}
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">Check-in</button>
+    <form method="POST" action="{{ url_for('reservations.no_show', id=r.id) }}"><button class="btn btn-sm btn-outline-warning">No Show</button></form>
+    <form method="POST" action="{{ url_for('reservations.cancel', id=r.id) }}"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+    {% endif %}
+    {% if r.status == 'Checked In' %}
+    <a href="{{ url_for('reservations.final_billing', id=r.id) }}" class="btn btn-sm btn-sv">Final Billing</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card p-3 mb-3">
+      <h6 class="fw-bold">Details</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <tr><th>Customer</th><td>{{ r.customer_name }}</td></tr>
+        <tr><th>Phone</th><td>{{ r.phone }}</td></tr>
+        <tr><th>Email</th><td>{{ r.email or '-' }}</td></tr>
+        <tr><th>Date / Time</th><td>{{ r.date }} {{ r.time.strftime('%H:%M') }}</td></tr>
+        <tr><th>Expected PAX</th><td>{{ r.pax }}</td></tr>
+        <tr><th>Event</th><td>{{ r.event_type }}</td></tr>
+        <tr><th>Special Requests</th><td>{{ r.special_requests or '-' }}</td></tr>
+        <tr><th>Assigned Staff</th><td>{{ r.assigned_staff or '-' }}</td></tr>
+        <tr><th>Confirmed By</th><td>{{ r.confirmed_by or '-' }} {% if r.date_confirmed %}on {{ r.date_confirmed.strftime('%Y-%m-%d %H:%M') }}{% endif %}</td></tr>
+        {% if r.arrival_time %}<tr><th>Arrival Time</th><td>{{ r.arrival_time.strftime('%Y-%m-%d %H:%M') }}</td></tr>{% endif %}
+        {% if r.actual_pax %}<tr><th>Actual Guests</th><td>{{ r.actual_pax }}</td></tr>{% endif %}
+        {% if r.total_bill %}<tr><th>Total Bill</th><td>₱{{ '%.2f'|format(r.total_bill) }}</td></tr>{% endif %}
+      </table>
+</div>
+    </div>
+
+    <div class="card p-3">
+      <h6 class="fw-bold">Proof of Payment</h6>
+      {% for a in r.attachments %}
+        <div class="mb-1"><a href="{{ url_for('main.serve_upload', filename=a.filename) }}" target="_blank"><i class="bi bi-paperclip"></i> {{ a.filename.split('_',1)[-1] }}</a></div>
+      {% else %}<p class="text-muted">No attachments.</p>{% endfor %}
+      <form method="POST" action="{{ url_for('reservations.upload_proof', id=r.id) }}" enctype="multipart/form-data" class="d-flex gap-2 mt-2">
+        <input type="file" name="proof_of_payment" class="form-control form-control-sm" accept="image/*,.pdf">
+        <button class="btn btn-sm btn-outline-success">Upload</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card p-3">
+      <h6 class="fw-bold">Payments</h6>
+      <div class="table-responsive">
+<table class="table table-sm">
+        <thead><tr><th>Type</th><th>Amount</th><th>Method</th><th>Status</th>{% if current_user.is_admin() %}<th></th>{% endif %}</tr></thead>
+        <tbody>
+        {% for p in r.res_payments %}
+          <tr>
+            <td>{{ p.payment_type }}</td><td>₱{{ '%.2f'|format(p.amount) }}</td><td>{{ p.method }}</td>
+            <td><span class="badge bg-{{ 'success' if p.status=='Verified' else ('danger' if p.status=='Rejected' else 'warning') }}">{{ p.status }}</span></td>
+            {% if current_user.is_admin() and p.status == 'Pending' %}
+            <td>
+              <form method="POST" action="{{ url_for('reservations.verify_payment', payment_id=p.id) }}" style="display:inline">
+                <button class="btn btn-sm btn-outline-success" name="action" value="Verified">✓</button>
+                <button class="btn btn-sm btn-outline-danger" name="action" value="Rejected">✗</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+</div>
+      <p class="small text-muted">
+        Verified Payments (down payment + final): ₱{{ '%.2f'|format(r.total_verified_paid()) }}
+        {% set pending = r.total_recorded_paid() - r.total_verified_paid() %}
+        {% if pending %}<br><span class="text-warning">Pending verification: ₱{{ '%.2f'|format(pending) }}</span>{% endif %}
+      </p>
+      {% if r.billing_requires_approval %}
+      <div class="alert alert-warning py-2 px-3 mb-0">This reservation's final bill is pending admin approval before it can be marked Completed.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="checkinModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5>Check-in {{ r.reservation_number }}</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="POST" action="{{ url_for('reservations.checkin', id=r.id) }}">
+      <div class="modal-body">
+        <label class="form-label">Actual Number of Guests</label>
+        <input type="number" name="actual_pax" class="form-control" value="{{ r.pax }}" min="1">
+      </div>
+      <div class="modal-footer"><button class="btn btn-sv">Check In</button></div>
+    </form>
+  </div></div>
+</div>
+{% endblock %}

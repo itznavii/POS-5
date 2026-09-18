@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold">Notifications</h4>
+  <a href="{{ url_for('notifications.mark_all_read') }}" class="btn btn-sm btn-outline-secondary">Mark all read</a>
+</div>
+<div class="card p-3">
+{% for n in items %}
+  <div class="d-flex justify-content-between align-items-center border-bottom py-2 {{ 'fw-bold' if not n.is_read }}">
+    <div><span class="badge bg-secondary">{{ n.type }}</span> {{ n.message }} <small class="text-muted">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</small></div>
+    {% if not n.is_read %}<a href="{{ url_for('notifications.mark_read', id=n.id) }}" class="btn btn-sm btn-outline-success">Mark read</a>{% endif %}
+  </div>
+{% else %}
+  <p class="text-muted">No notifications.</p>
+{% endfor %}
+</div>
+{% endblock %}

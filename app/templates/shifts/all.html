@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}All Shifts{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-3">All Cashier Shifts</h4>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+  <thead><tr><th>#</th><th>Cashier</th><th>Opened</th><th>Closed</th><th>Expected</th><th>Counted</th><th>Variance</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for s in items %}
+    {% set v = s.variance() %}
+    <tr>
+      <td>{{ s.id }}</td>
+      <td>{{ s.user.name or s.user.username }}</td>
+      <td>{{ s.opened_at.strftime('%m/%d %I:%M %p') }}</td>
+      <td>{{ s.closed_at.strftime('%m/%d %I:%M %p') if s.closed_at else '-' }}</td>
+      <td>₱{{ '%.2f'|format(s.expected_cash()) }}</td>
+      <td>{% if s.closing_cash_counted is not none %}₱{{ '%.2f'|format(s.closing_cash_counted) }}{% else %}-{% endif %}</td>
+      <td class="{{ 'text-danger' if v and v < 0 else ('text-success' if v and v > 0 else '') }}">
+        {% if v is not none %}₱{{ '%.2f'|format(v) }}{% else %}-{% endif %}
+      </td>
+      <td>
+        <span class="badge {{ 'bg-success' if s.status == 'open' else 'bg-secondary' }}">{{ s.status }}</span>
+        {% if s.approved_by %}<span class="badge bg-info">approved</span>{% endif %}
+      </td>
+      <td><a href="{{ url_for('shifts.detail', id=s.id) }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="text-muted text-center py-3">No shifts recorded yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% with endpoint='shifts.all_shifts' %}{% include "_pagination.html" %}{% endwith %}
+</div>
+{% endblock %}

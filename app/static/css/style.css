@@ -1,0 +1,28 @@
+:root {
+  --sv-green-900: #123524;
+  --sv-green-700: #1e5631;
+  --sv-green-600: #2f7a4f;
+  --sv-green-100: #eaf5ec;
+  --sv-gold: #c9a227;
+}
+body { background: #f4f7f5; font-family: 'Segoe UI', system-ui, sans-serif; }
+.navbar-sv { background: linear-gradient(135deg, var(--sv-green-900), var(--sv-green-700)); }
+.navbar-sv .nav-link, .navbar-sv .navbar-brand { color: #fff !important; }
+.navbar-sv .nav-link:hover { color: var(--sv-gold) !important; }
+.sidebar { background: var(--sv-green-900); min-height: 100vh; }
+.sidebar a { color: #d8e8dc; display:block; padding: .6rem 1rem; text-decoration:none; border-radius:6px; }
+.sidebar a:hover, .sidebar a.active { background: var(--sv-green-600); color:#fff; }
+.card-stat { border: none; border-left: 4px solid var(--sv-green-600); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.btn-sv { background: var(--sv-green-600); border-color: var(--sv-green-600); color:#fff; }
+.btn-sv:hover { background: var(--sv-green-700); border-color: var(--sv-green-700); color:#fff; }
+.product-card { cursor:pointer; transition: transform .12s; border-radius: 10px; overflow:hidden; }
+.product-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+.badge-sv { background: var(--sv-gold); color:#1e1e1e; }
+.table-tile { width:90px; height:70px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:600; cursor:pointer; color:#fff; }
+.table-available { background:#2f7a4f; }
+.table-occupied { background:#c0392b; }
+.table-reserved { background:#c9a227; color:#1e1e1e; }
+.table-cleaning { background:#7f8c8d; }
+.kitchen-card { border-left: 5px solid var(--sv-green-600); }
+.kitchen-card.status-ready { border-left-color: var(--sv-gold); }
+.kitchen-card.status-served { border-left-color: #6c757d; opacity:.7; }

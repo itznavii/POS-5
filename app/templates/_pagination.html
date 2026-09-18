@@ -1,0 +1,24 @@
+{# Expects: pagination (a Flask-SQLAlchemy Pagination object), endpoint (string), and any extra
+   query args to preserve across pages passed as extra_args (dict, optional) #}
+{% if pagination.pages > 1 %}
+<nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center mt-3">
+  <small class="text-muted">Showing {{ pagination.items|length }} of {{ pagination.total }}</small>
+  <ul class="pagination pagination-sm mb-0">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, **(extra_args or {})) }}">&laquo;</a>
+    </li>
+    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+      {% if p %}
+        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for(endpoint, page=p, **(extra_args or {})) }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, **(extra_args or {})) }}">&raquo;</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}

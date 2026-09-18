@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Staff{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold">Staff Management</h4>
+  <button class="btn btn-sv btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+ Add Staff</button>
+</div>
+<div class="card p-3">
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+  <thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for u in items %}
+    <tr>
+      <td>{{ u.username }}</td><td>{{ u.name }}</td><td><span class="badge badge-sv">{{ u.role }}</span></td>
+      <td>{% if u.active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#resetModal{{ u.id }}">Reset PW</button>
+        {% if u.id != current_user.id %}
+        <form method="POST" action="{{ url_for('admin.toggle_active', id=u.id) }}" style="display:inline"><button class="btn btn-sm btn-outline-warning">{{ 'Deactivate' if u.active else 'Activate' }}</button></form>
+        {% endif %}
+      </td>
+    </tr>
+    <div class="modal fade" id="resetModal{{ u.id }}"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h6>Reset password for {{ u.username }}</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="POST" action="{{ url_for('admin.reset_password', id=u.id) }}">
+        <div class="modal-body"><input type="text" name="password" class="form-control" placeholder="New password" required></div>
+        <div class="modal-footer"><button class="btn btn-sv btn-sm">Reset</button></div>
+      </form>
+    </div></div></div>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+<div class="modal fade" id="addUserModal"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5>Add Staff Account</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form method="POST" action="{{ url_for('admin.add_user') }}">
+    <div class="modal-body">
+      <input type="text" name="username" class="form-control mb-2" placeholder="Username" required>
+      <input type="text" name="name" class="form-control mb-2" placeholder="Full name">
+      <select name="role" class="form-select mb-2"><option value="staff">Staff / Cashier</option><option value="admin">Administrator</option></select>
+      <input type="text" name="password" class="form-control" placeholder="Initial password" required>
+    </div>
+    <div class="modal-footer"><button class="btn btn-sv">Create</button></div>
+  </form>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}POS{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card p-3 mb-3">
+      <h6 class="fw-bold mb-3">Buffet Guest Count</h6>
+      {% if buffet_products|length > 1 %}
+      <div class="mb-3">
+        <label class="form-label small">Buffet Package</label>
+        <select id="buffetProductSelect" class="form-select"></select>
+      </div>
+      {% endif %}
+      <div id="tierRows"></div>
+      <hr class="my-2">
+      <div id="freeRows"></div>
+      <div class="text-end fw-bold mt-2">Total Guests: <span id="totalPax">0</span></div>
+    </div>
+
+    <div class="card p-3">
+      <div class="d-flex justify-content-between mb-2">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="isWalkin">
+          <label class="form-check-label" for="isWalkin">Walk-in</label>
+        </div>
+        <select id="tableSelect" class="form-select form-select-sm" style="width:160px;">
+          <option value="">No Table</option>
+          {% for t in tables %}
+          <option value="{{ t.id }}" {% if t.status != 'available' and not t.session_id %}disabled{% endif %} {% if preselect_table_id and t.id == preselect_table_id %}selected{% endif %}>
+            {{ t.name }}{% if t.session_id %} (open tab - {{ t.session.session_number }}){% else %} ({{ t.status }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <input type="text" id="customerName" class="form-control form-control-sm" placeholder="Customer name (optional)">
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card p-3">
+      <h6 class="fw-bold">Bill Summary</h6>
+      <div class="mb-2">
+        <label class="form-label mb-0 small">Promo Discount (%)</label>
+        <input type="number" id="promoDiscount" class="form-control form-control-sm" value="0" min="0" max="100">
+      </div>
+      <div class="d-flex justify-content-between"><span>Subtotal</span><span id="subtotalDisplay">₱0.00</span></div>
+      <div class="d-flex justify-content-between text-danger"><span>Discount</span><span id="discountDisplay">-₱0.00</span></div>
+      <div class="d-flex justify-content-between fw-bold fs-5"><span>Total</span><span id="totalDisplay">₱0.00</span></div>
+
+      <hr>
+      <h6 class="fw-bold" id="paymentHeading">Payment <span class="text-danger">*</span></h6>
+      <div id="tabNotice" class="alert alert-info py-2 px-2 small mb-2" style="display:none;">
+        This table has an open tab. This order goes to the kitchen now - payment can be added now or settled later when the table's tab is closed.
+      </div>
+      <div id="paymentRows"></div>
+      <button class="btn btn-sm btn-outline-secondary mb-2" onclick="addPaymentRow()"><i class="bi bi-plus"></i> Add Payment (split)</button>
+      <div class="d-flex justify-content-between"><span>Amount Tendered</span><span id="tenderedDisplay">₱0.00</span></div>
+      <div class="d-flex justify-content-between"><span>Balance/Change</span><span id="changeDisplay">₱0.00</span></div>
+
+      <div class="mb-2 mt-2" id="proofFileWrap" style="display:none;">
+        <label class="form-label mb-0 small">Attach Proof of Payment (screenshot/receipt) <span class="text-danger">*</span></label>
+        <input type="file" id="proofFile" class="form-control form-control-sm" accept=".png,.jpg,.jpeg,.gif,.webp,.pdf">
+      </div>
+      <div class="form-text text-muted small mb-2" id="paymentHelpText">GCash payments require a reference number and an attached proof of payment. At least one payment covering the full total is required to complete the sale.</div>
+
+      <button class="btn btn-sv w-100 mt-3" onclick="checkout()"><i class="bi bi-check-circle"></i> <span id="submitLabel">Complete Sale</span></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const TABLE_SESSIONS = { {% for t in tables %}{% if t.session_id %}{{ t.id }}: {{ t.session_id }},{% endif %}{% endfor %} };
+
+  function updateTabMode() {
+    const tableId = document.getElementById('tableSelect').value;
+    const isTab = tableId && TABLE_SESSIONS[tableId];
+    document.getElementById('tabNotice').style.display = isTab ? 'block' : 'none';
+    document.getElementById('paymentHelpText').textContent = isTab
+      ? "This order will be added to the table's open tab. Payment is optional right now."
+      : "GCash payments require a reference number and an attached proof of payment. At least one payment covering the full total is required to complete the sale.";
+    document.getElementById('submitLabel').textContent = isTab ? 'Send Order to Table' : 'Complete Sale';
+  }
+  document.getElementById('tableSelect').addEventListener('change', updateTabMode);
+  document.addEventListener('DOMContentLoaded', updateTabMode);
+
+let buffetProducts = [];
+let currentProduct = null;
+// Priced guest types (pulled from the buffet product's tier prices)
+const TIERS = ['adult', 'senior', 'pwd', 'kids'];
+const TIER_LABELS = { adult: 'Adult', senior: 'Senior Citizen', pwd: 'PWD', kids: 'Kids' };
+// Free-of-charge guest types — always ₱0.00, but tracked separately so
+// reports can show how many were "below 3 ft" vs "birthday celebrant".
+const FREE_TYPES = ['free_below3ft', 'free_birthday'];
+const FREE_LABELS = { free_below3ft: 'Kids below 3 ft', free_birthday: 'Birthday Celebrant' };
+
+function loadBuffetProducts() {
+  fetch("{{ url_for('pos.api_buffet_products') }}")
+    .then(r => r.json())
+    .then(data => {
+      buffetProducts = data;
+      if (buffetProducts.length === 0) {
+        document.getElementById('tierRows').innerHTML = '<p class="text-danger">No buffet package is set up yet. Ask an admin to add one in Menu Management.</p>';
+        return;
+      }
+      const select = document.getElementById('buffetProductSelect');
+      if (select) {
+        select.innerHTML = buffetProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        select.addEventListener('change', () => selectProduct(select.value));
+      }
+      selectProduct(buffetProducts[0].id);
+    });
+}
+
+function selectProduct(id) {
+  currentProduct = buffetProducts.find(p => p.id == id);
+  renderTierRows();
+}
+
+function renderTierRows() {
+  const el = document.getElementById('tierRows');
+  const freeEl = document.getElementById('freeRows');
+  if (!currentProduct) { el.innerHTML = ''; freeEl.innerHTML = ''; return; }
+  const t = currentProduct.buffet_tiers;
+  el.innerHTML = TIERS.map(tier => `
+    <div class="row mb-2 align-items-center">
+      <div class="col-7">${TIER_LABELS[tier]} <span class="text-muted small">(₱${(t[tier]||0).toFixed(2)})</span></div>
+      <div class="col-5">
+        <input type="number" min="0" value="0" class="form-control form-control-sm tier-input" id="tier_${tier}" oninput="recalc()">
+      </div>
+    </div>`).join('');
+  freeEl.innerHTML = FREE_TYPES.map(ft => `
+    <div class="row mb-2 align-items-center">
+      <div class="col-7">${FREE_LABELS[ft]} <span class="text-muted small">(₱0.00)</span></div>
+      <div class="col-5">
+        <input type="number" min="0" value="0" class="form-control form-control-sm tier-input" id="free_${ft}" oninput="recalc()">
+      </div>
+    </div>`).join('');
+  recalc();
+}
+
+function getCounts() {
+  const counts = {};
+  TIERS.forEach(t => {
+    const input = document.getElementById('tier_' + t);
+    counts[t] = input ? Math.max(0, parseInt(input.value || 0)) : 0;
+  });
+  let free = 0;
+  FREE_TYPES.forEach(ft => {
+    const input = document.getElementById('free_' + ft);
+    free += input ? Math.max(0, parseInt(input.value || 0)) : 0;
+  });
+  counts.free = free;
+  return counts;
+}
+
+function computeTotals() {
+  if (!currentProduct) return { subtotal: 0, totalDiscount: 0, total: 0, totalPax: 0 };
+  const counts = getCounts();
+  const t = currentProduct.buffet_tiers;
+  const subtotal = TIERS.reduce((sum, tier) => sum + counts[tier] * (t[tier] || 0), 0);
+  const totalPax = TIERS.reduce((sum, tier) => sum + counts[tier], 0) + counts.free;
+  const promoPct = parseFloat(document.getElementById('promoDiscount').value || 0);
+  const totalDiscount = subtotal * (promoPct / 100);
+  const total = Math.max(0, subtotal - totalDiscount);
+  return { subtotal, totalDiscount, total, totalPax };
+}
+
+function recalc() {
+  const t = computeTotals();
+  document.getElementById('totalPax').innerText = t.totalPax;
+  document.getElementById('subtotalDisplay').innerText = '₱' + t.subtotal.toFixed(2);
+  document.getElementById('discountDisplay').innerText = '-₱' + t.totalDiscount.toFixed(2);
+  document.getElementById('totalDisplay').innerText = '₱' + t.total.toFixed(2);
+  recalcPayments();
+}
+document.getElementById('promoDiscount').addEventListener('input', recalc);
+
+const REQUIRES_REFERENCE = ['GCash'];
+let paymentRowCount = 0;
+function addPaymentRow() {
+  paymentRowCount++;
+  const id = paymentRowCount;
+  const div = document.createElement('div');
+  div.className = 'input-group input-group-sm mb-1';
+  div.id = 'payrow_' + id;
+  div.innerHTML = `
+    <select class="form-select" id="paymethod_${id}" onchange="toggleRefRequired(${id})">
+      <option>Cash</option><option>GCash</option><option>Credit Card</option>
+    </select>
+    <input type="number" class="form-control" placeholder="Amount" id="payamount_${id}" oninput="recalcPayments()">
+    <input type="text" class="form-control" placeholder="Ref #" id="payref_${id}">
+    <button class="btn btn-outline-danger" onclick="document.getElementById('payrow_${id}').remove(); recalcPayments(); updateProofFileVisibility();">&times;</button>
+  `;
+  document.getElementById('paymentRows').appendChild(div);
+}
+addPaymentRow();
+
+function toggleRefRequired(id) {
+  const method = document.getElementById('paymethod_' + id).value;
+  const refInput = document.getElementById('payref_' + id);
+  if (REQUIRES_REFERENCE.includes(method)) {
+    refInput.placeholder = 'Ref # (required)';
+    refInput.classList.add('border-warning');
+  } else {
+    refInput.placeholder = 'Ref #';
+    refInput.classList.remove('border-warning');
+  }
+  updateProofFileVisibility();
+}
+
+function anyPaymentNeedsProof() {
+  const rows = document.querySelectorAll('#paymentRows > div');
+  for (const row of rows) {
+    const id = row.id.split('_')[1];
+    const method = document.getElementById('paymethod_' + id).value;
+    if (REQUIRES_REFERENCE.includes(method)) return true;
+  }
+  return false;
+}
+
+function updateProofFileVisibility() {
+  document.getElementById('proofFileWrap').style.display = anyPaymentNeedsProof() ? '' : 'none';
+}
+
+function getPayments() {
+  const rows = document.querySelectorAll('#paymentRows > div');
+  const payments = [];
+  rows.forEach(row => {
+    const id = row.id.split('_')[1];
+    const amount = parseFloat(document.getElementById('payamount_' + id).value || 0);
+    if (amount > 0) {
+      payments.push({
+        method: document.getElementById('paymethod_' + id).value,
+        amount: amount,
+        reference_number: document.getElementById('payref_' + id).value.trim()
+      });
+    }
+  });
+  return payments;
+}
+
+function recalcPayments() {
+  const payments = getPayments();
+  const tendered = payments.reduce((a, p) => a + p.amount, 0);
+  const t = computeTotals();
+  document.getElementById('tenderedDisplay').innerText = '₱' + tendered.toFixed(2);
+  document.getElementById('changeDisplay').innerText = '₱' + Math.max(0, tendered - t.total).toFixed(2);
+}
+
+function checkout() {
+  if (!currentProduct) { alert('No buffet package selected.'); return; }
+  const counts = getCounts();
+  const totalPax = TIERS.reduce((sum, tier) => sum + counts[tier], 0) + counts.free;
+  if (totalPax <= 0) { alert('Enter at least 1 guest.'); return; }
+
+  const payments = getPayments();
+  const t = computeTotals();
+  const tendered = payments.reduce((a, p) => a + p.amount, 0);
+  const tableId = document.getElementById('tableSelect').value;
+  const isTab = tableId && TABLE_SESSIONS[tableId];
+
+  if (!isTab && (payments.length === 0 || tendered <= 0)) {
+    alert('Please enter at least one payment before completing the sale.');
+    return;
+  }
+  for (const p of payments) {
+    if (REQUIRES_REFERENCE.includes(p.method) && !p.reference_number) {
+      alert(`A reference number is required for ${p.method} payments.`);
+      return;
+    }
+  }
+  const proofFileInput = document.getElementById('proofFile');
+  const proofFile = proofFileInput.files[0] || null;
+  if (anyPaymentNeedsProof() && !proofFile) {
+    alert('Please attach proof of payment (screenshot/receipt) for GCash payments.');
+    return;
+  }
+  if (!isTab && tendered + 0.01 < t.total) {
+    alert(`Payment (₱${tendered.toFixed(2)}) is less than the total bill (₱${t.total.toFixed(2)}).`);
+    return;
+  }
+
+  const payload = {
+    product_id: currentProduct.id,
+    adult: counts.adult, senior: counts.senior, pwd: counts.pwd, kids: counts.kids, free: counts.free,
+    promo_discount_percent: parseFloat(document.getElementById('promoDiscount').value || 0),
+    payments: payments,
+    is_walkin: document.getElementById('isWalkin').checked,
+    table_id: document.getElementById('tableSelect').value || null,
+    customer_name: document.getElementById('customerName').value
+  };
+
+  const formData = new FormData();
+  formData.append('payload', JSON.stringify(payload));
+  if (proofFile) formData.append('proof_file', proofFile);
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  fetch("{{ url_for('pos.checkout') }}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrfToken },
+    body: formData
+  }).then(r => r.json()).then(res => {
+    if (res.error) { alert(res.error); return; }
+    if (res.requires_approval) {
+      alert(`Sale ${res.sale_number} needs admin approval (large discount). It's on hold.`);
+    } else if (res.dining_session_id) {
+      window.location.href = `/tables/session/${res.dining_session_id}`;
+    } else {
+      window.location.href = `/pos/receipt/${res.sale_id}`;
+    }
+    TIERS.forEach(tr => { const i = document.getElementById('tier_' + tr); if (i) i.value = 0; });
+    FREE_TYPES.forEach(ft => { const i = document.getElementById('free_' + ft); if (i) i.value = 0; });
+    document.getElementById('paymentRows').innerHTML = ''; addPaymentRow();
+    proofFileInput.value = '';
+    recalc();
+  }).catch(() => alert('Checkout failed. Please try again.'));
+}
+
+loadBuffetProducts();
+</script>
+{% endblock %}
